@@ -40,8 +40,6 @@ class GameView (context: Context,width:Int,height:Int)
         //Start
 
         buildMatrix()
-        graphics.setTextSize((cellSide*0.5f).toInt()*2)
-        graphics.setTextColor(ContextCompat.getColor(context, R.color.Pink))
 
     }
 
@@ -50,6 +48,7 @@ class GameView (context: Context,width:Int,height:Int)
         graphics.clear(ContextCompat.getColor(context, R.color.Red))
         drawGrid()
         drawBoard()
+        drawTexts()
 
         return graphics.frameBuffer
 
@@ -87,14 +86,13 @@ class GameView (context: Context,width:Int,height:Int)
                 drawSquare(i+verticalOffset ,j+ horizontalOffset,1f,R.color.CadetBlue)
             }
         }
+    }
 
-        drawText("Place the ships",1,10)
-
-
+    fun drawTexts(){
+        drawText("Place the ships",1,10, 2, R.color.Pink)
 
 
     }
-
     private fun drawSquare(row:Int,xoffset:Float ,column:Int, yoffset:Float,size:Float, colorID: Int)
     {
         var realPos = canvasGrid[column][row]
@@ -110,8 +108,11 @@ class GameView (context: Context,width:Int,height:Int)
         graphics.drawRect(realPos.x,realPos.y,cellSide*size,cellSide*size,ContextCompat.getColor(context, colorID))
     }
 
-    private fun drawText(text:String,row:Int, column:Int)
+    private fun drawText(text:String,row:Int, column:Int, textSize:Int, textColor:Int)
     {
+        graphics.setTextSize((cellSide*0.5f).toInt()*textSize)
+        graphics.setTextColor(ContextCompat.getColor(context, textColor))
+
         val realPos = canvasGrid[column][row]
         graphics.drawText(realPos.x,realPos.y,text)
 
