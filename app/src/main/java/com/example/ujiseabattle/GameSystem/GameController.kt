@@ -20,6 +20,10 @@ class GameController(context: Context,displayMetrics: DisplayMetrics) : IGameCon
     private val gameModel : GameModel = GameModel(presenter)
 
 
+    init {
+        presenter.gameModel = gameModel
+    }
+
     override fun onUpdate(deltaTime: Float, touchEvents: MutableList<TouchHandler.TouchEvent>?)
     {
 

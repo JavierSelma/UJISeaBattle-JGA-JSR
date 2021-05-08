@@ -4,10 +4,10 @@ import android.graphics.Bitmap
 import com.example.ujiseabattle.GameSystem.GamePresenter
 import com.example.ujiseabattle.GameSystem.Vector2
 
-class Ship(var x :Int,var y: Int,var size:Int,var bitmapHorizontal:Bitmap?,var bitmapVertical:Bitmap?,var p:GamePresenter)
+class Ship(var x :Int,var y: Int,var size:Int,val bitmapPack: BitmapPack,var p:GamePresenter)
 {
     var inHorizontal = true
-    var activeBitmap : Bitmap? = bitmapHorizontal
+    var activeBitmap : Bitmap? = bitmapPack.horizontal
 
     init {
         setOccupied(true)
@@ -73,15 +73,33 @@ class Ship(var x :Int,var y: Int,var size:Int,var bitmapHorizontal:Bitmap?,var b
         for(i in 0 until size)
         {
             if(inHorizontal)p.canvasGrid[y+i][x].occupier = o
-            else p.canvasGrid[y][x+1].occupier = o
+            else p.canvasGrid[y][x+i].occupier = o
         }
     }
 
     fun changeOrientation()
     {
-        setOccupied(false)
         inHorizontal = !inHorizontal
-        activeBitmap = bitmapVertical
+        if(!checkCollisions(x,y))
+        {
+            inHorizontal = !inHorizontal
+            return
+        }
+        inHorizontal = !inHorizontal
+
+        setOccupied(false)
+
+        if(inHorizontal)
+        {
+            activeBitmap = bitmapPack.vertical
+            inHorizontal = false
+        }
+        else
+        {
+            activeBitmap = bitmapPack.horizontal
+            inHorizontal = true
+
+        }
         setOccupied(true)
 
 
