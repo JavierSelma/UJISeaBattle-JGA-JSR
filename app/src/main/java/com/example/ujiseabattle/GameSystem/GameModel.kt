@@ -1,19 +1,10 @@
 package com.example.ujiseabattle.GameSystem
 
-import android.util.Log
+import com.example.ujiseabattle.GameElements.Ships.Ship
 import es.uji.vj1229.framework.TouchHandler
 
-class GameModel
+class GameModel(private val presenter: GamePresenter)
 {
-    lateinit var  presenter: GamePresenter
-    var time : Float = 0f
 
-
-    fun onUpdate(deltaTime: Float, touchEvents: MutableList<TouchHandler.TouchEvent>?)
-    {
-        time += deltaTime
-
-
-    }
 
 }
