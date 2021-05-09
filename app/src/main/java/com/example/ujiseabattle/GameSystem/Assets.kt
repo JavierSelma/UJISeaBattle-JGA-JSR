@@ -46,18 +46,41 @@ object Assets {
     var verticalDestroyedShort : Bitmap? = null;
     //endregion
 
-    //region WATER SPLASH
-    private const val SPLASH_ROWS = 2
-    private const val SPLASH_COLUMNS = 4
-    private const val SPLASH_WIDTH = 62
-    private const val SPLASH_HEIGHT = 33
+    //Exploded
+    var exploded : Bitmap? = null
 
-    private var splash : SpriteSheet? = null;
-    var waterSplash : AnimatedBitmap? = null;
+    //Arrow
+    var arrow : Bitmap ? = null
+
+
+    //region EXPLOSION
+    private var explosionSS : SpriteSheet? = null;
+    var explosionAB : AnimatedBitmap? = null;
+    private const val explosionRows = 1
+    private const val explosionColumns = 6
+    private const val explosionWidth = 32
+    private const val explosionHeight = 32
+
+    //region SPLASH
+    private var splashSS : SpriteSheet? = null;
+    var splashAB : AnimatedBitmap? = null;
+    private const val splashRows = 1
+    private const val splashColumns = 4
+    private const val splashWidth = 32
+    private const val splashHeight = 32
+
+
     //endregion
 
     fun loadDrawableAssets(context: Context){
         val resources : Resources = context.resources
+
+        val sheet = BitmapFactory.decodeResource(resources, R.drawable.explosion)
+        explosionSS = SpriteSheet(sheet, explosionHeight, explosionWidth)
+
+        val sheet2 = BitmapFactory.decodeResource(resources, R.drawable.splash)
+        splashSS = SpriteSheet(sheet2, splashHeight, splashWidth)
+
     }
 
     fun createResizedAssets(context : Context, cellSize : Int){
@@ -151,5 +174,40 @@ object Assets {
                 cellSize, cellSize * SSHIP_LENGTH, true)
         //endregion
 
+        //region EXPLODED
+        exploded?.recycle()
+        exploded = Bitmap.createScaledBitmap(
+                BitmapFactory.decodeResource(resources, R.drawable.exploded),
+                cellSize , cellSize, true)
+
+        //endregion
+
+        //region ARROW
+        arrow?.recycle()
+        arrow = Bitmap.createScaledBitmap(
+                BitmapFactory.decodeResource(resources, R.drawable.arrowright),
+                cellSize*3 , cellSize*2, true)
+
+        //endregion
+
+        //region EXPLOSION
+
+        val frames = ArrayList<Bitmap>()
+        explosionAB?.recycle()
+        for (row in 0 until explosionRows)
+            explosionSS?.let { frames.addAll(it.getScaledRow(row, explosionColumns, cellSize,
+                    cellSize)) }
+        explosionAB = AnimatedBitmap(0.7f, false, *frames.toTypedArray())
+        //endregion
+
+        //region SPLASH
+
+        val frames2 = ArrayList<Bitmap>()
+        splashAB?.recycle()
+        for (row in 0 until splashRows)
+            splashSS?.let { frames2.addAll(it.getScaledRow(row, splashColumns, cellSize,
+                    cellSize)) }
+        splashAB = AnimatedBitmap(0.7f, false, *frames2.toTypedArray())
+        //endregion
     }
 }

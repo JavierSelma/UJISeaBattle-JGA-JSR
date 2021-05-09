@@ -9,11 +9,20 @@ import com.example.ujiseabattle.GameElements.Ships.Ship
 import com.example.ujiseabattle.GameElements.Tile
 import com.example.ujiseabattle.R
 import es.uji.vj1229.framework.TouchHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.min
 
-class GamePresenter(val context: Context,width:Int,height:Int)
+class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: GameActivity)
 {
+
+    val system = System()
     lateinit var  gameModel: GameModel
+
+
+
     val placingBoardX = 1
     val placingBoardY = 2
     val boardSize = 10
@@ -23,33 +32,43 @@ class GamePresenter(val context: Context,width:Int,height:Int)
     val canvasGrid: Array<Array<Tile>> = Array(totalColumns) { Array<Tile>(totalRows) { Tile(Vector2.zero) }}
     var activeShips: MutableList<Ship> = mutableListOf<Ship>()
     var activeButtons: MutableList<Button> = mutableListOf<Button>()
+    var activeExplosion : Animation? = null
 
     val cellSide = min(width.toFloat() / totalColumns,
             height.toFloat() / totalRows)
     val xOffset = (width - totalColumns * cellSide) / 2.0f
     val yOffset = (height - totalRows * cellSide) / 2.0f
 
-    enum class GameState { PLACING, PLACED}
+    enum class GameState { PLACING, PLACED,MIDGAME,END}
 
     var gameState = GameState.PLACING
     set(value)
     {
+        clearAllButtons()
+
         if(value == GameState.PLACING)
         {
-            clearAllButtons()
+
         }
         else if(value == GameState.PLACED)
         {
-            clearAllButtons()
-            activeButtons.add(Button(7,17,4,R.color.DeepPink,"Battle!",2,R.color.white,0,this))
+            activeButtons.add(Button(7,17,4,R.color.DeepPink,"Battle!",2,R.color.white,0,Button.Type.Square,this))
+        }
+        else if(value == GameState.MIDGAME)
+        {
+            gameModel.setPlayingBoards()
+        }
+        else if(value == GameState.END)
+        {
+            val b = Button( totalRows-2,totalColumns/2-3,4,R.color.DeepPink,"Restart Game",2,R.color.white,1,Button.Type.Long,this)
+            activeButtons.add(b)
         }
 
 
         field = value
     }
 
-
-    var time : Float = 0f
+    private val enemyAI = EnemyAI(this)
 
     init {
 
@@ -58,6 +77,19 @@ class GamePresenter(val context: Context,width:Int,height:Int)
         buildMatrix()
         spawnShips(2,totalColumns/2 + 2)
 
+
+
+    }
+
+
+    private  fun createExplosion(row:Int,column: Int){
+        var animation = Animation(row,column,Assets.explosionAB)
+        activeExplosion = animation
+    }
+
+    private  fun createSplash(row:Int,column: Int){
+        var animation = Animation(row,column,Assets.splashAB)
+        activeExplosion = animation
     }
 
     private  fun clearAllButtons()
@@ -95,15 +127,12 @@ class GamePresenter(val context: Context,width:Int,height:Int)
 
     fun onUpdate(deltaTime: Float, touchEvents: MutableList<TouchHandler.TouchEvent>?)
     {
-        dataUpdates(deltaTime)
+        system.updateValues(deltaTime)
         touchManagement(touchEvents)
 
     }
 
-    private fun dataUpdates(deltaTime: Float)
-    {
-        time += deltaTime
-    }
+
 
     private  fun touchManagement(touchEvents: MutableList<TouchHandler.TouchEvent>?)
     {
@@ -114,10 +143,10 @@ class GamePresenter(val context: Context,width:Int,height:Int)
                 when (event.type) {
                     TouchHandler.TouchType.TOUCH_DOWN -> {
                         onTouchDown(correctedEventX,correctedEventY)
-                        touchTime = time;
+                        touchTime = system.time;
                     }
                     TouchHandler.TouchType.TOUCH_UP -> {
-                        if(time-touchTime<0.15f)onClick(correctedEventX,correctedEventY)
+                        if(system.time-touchTime<0.15f)onClick(correctedEventX,correctedEventY)
                         onTouchUp()
 
                     }
@@ -136,21 +165,105 @@ class GamePresenter(val context: Context,width:Int,height:Int)
 
     private  fun onTouchDown(x:Int,y:Int)
     {
-        selectedShip =  canvasGrid[x][y].occupier
+        if(gameState == GameState.PLACING || gameState == GameState.PLACED)
+        {
+            selectedShip =  canvasGrid[x][y].occupier
+        }
     }
 
     private fun onClick(x:Int,y:Int)
     {
-        selectedShip?.changeOrientation()
+        if(gameState == GameState.PLACED || gameState == GameState.PLACING)
+        {
+            selectedShip?.changeOrientation()
+        }
+        else if(gameState == GameState.MIDGAME)
+        {
+           playerPlay(x,y)
+        }
 
         if(canvasGrid[x][y].occupierButton != null) canvasGrid[x][y].occupierButton?.let { buttonAction(it.buttonID) }
     }
 
+    private  fun playerPlay(x:Int,y:Int)
+    {
+        if(!gameModel.playerTurn)return
+        if(canvasGrid[x][y].tileType != Tile.TileType.Clean)return
+
+        if(canvasGrid[x][y].friendly)return
+
+        if(canvasGrid[x][y].occupier != null)
+        {
+            canvasGrid[x][y].tileType = Tile.TileType.Bombed
+            createExplosion(y,x)
+            val shipShinked =  canvasGrid[x][y].occupier?.increaseTotalBombed()
+            if( shipShinked == true)gameModel.playerScore++
+        }
+        else
+        {
+            canvasGrid[x][y].tileType = Tile.TileType.Missed
+            createSplash(y,x)
+            gameModel.playerTurn = false
+            startComputersTurn()
+        }
+
+
+
+
+
+    }
+
+    fun startComputersTurn()
+    {
+        if(gameState == GameState.END)return
+
+        GlobalScope.launch(context = Dispatchers.Main) {
+            delay(1000)
+            val hit =  processComputerPlay(enemyAI.getPlay())
+            delay(1000)
+            if(!hit)gameModel.playerTurn = true
+            else startComputersTurn()
+            }
+    }
+
+    fun processComputerPlay(play: Pair):Boolean
+    {
+        val row = play.Row
+        val column = play.Column
+
+        if(canvasGrid[column][row].occupier != null)
+        {
+            canvasGrid[column][row].tileType = Tile.TileType.Bombed
+            createExplosion(row,column)
+            val shipShinked =  canvasGrid[column][row].occupier?.increaseTotalBombed()
+            if( shipShinked == true)gameModel.enemyScore++
+            return true
+        }
+        else
+        {
+            canvasGrid[column][row].tileType = Tile.TileType.Missed
+            createSplash(row,column)
+            return false
+        }
+
+
+
+    }
+
+
     private  fun onTouchUp()
     {
-        selectedShip = null
-        gameState = if(gameModel.checkValidPlacement()) GameState.PLACED
-        else GameState.PLACING
+
+
+        if(gameState == GameState.PLACING || gameState == GameState.PLACED)
+        {
+            selectedShip = null
+            gameState = if(gameModel.checkValidPlacement()) GameState.PLACED
+            else GameState.PLACING
+        }
+
+
+
 
     }
 
@@ -187,11 +300,18 @@ class GamePresenter(val context: Context,width:Int,height:Int)
 
     }
 
+
+
+
     fun buttonAction(buttonID:Int)
     {
         when(buttonID)
         {
-            0-> Log.d("Custom","$time  Phase ended")
+            0->
+            {
+                gameState = GameState.MIDGAME
+            }
+            1-> gameActivity.restartGame()
         }
     }
 

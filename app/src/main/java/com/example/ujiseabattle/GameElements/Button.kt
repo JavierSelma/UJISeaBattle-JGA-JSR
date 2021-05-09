@@ -3,8 +3,10 @@ package com.example.ujiseabattle.GameElements
 import android.util.Log
 import com.example.ujiseabattle.GameSystem.GamePresenter
 
-class Button (val x:Int,val y:Int,val size:Int,val boxColor: Int,val text:String,val  textSize:Int,val  textColor:Int,val buttonID: Int,val p:GamePresenter)
+class Button (val x:Int,val y:Int,val size:Int,val boxColor: Int,val text:String,val  textSize:Int,val  textColor:Int,val buttonID: Int,val activeType: Type,val p:GamePresenter)
 {
+
+    enum class Type {Square, Long}
 
 
     init {
@@ -18,13 +20,29 @@ class Button (val x:Int,val y:Int,val size:Int,val boxColor: Int,val text:String
         var o : Button? = this
         if(!value)o = null
 
-        for(row in y until y + size)
+        if(activeType == Type.Long)
         {
-            for(column in x until x+size)
+            for(row in x until x + 2)
             {
-                p.canvasGrid[row][column].occupierButton = o
+                for(column in y until y+7)
+                {
+                    p.canvasGrid[column][row].occupierButton = o
+                }
             }
         }
+        else
+        {
+            for(row in x until x + size)
+            {
+                for(column in y until y+size)
+                {
+                    p.canvasGrid[column][row].occupierButton = o
+                }
+            }
+        }
+
+
+
     }
 
 

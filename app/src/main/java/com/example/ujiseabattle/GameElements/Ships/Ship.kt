@@ -1,6 +1,8 @@
 package com.example.ujiseabattle.GameElements.Ships
 
 import android.graphics.Bitmap
+import com.example.ujiseabattle.GameElements.Button
+import com.example.ujiseabattle.GameElements.Tile
 import com.example.ujiseabattle.GameSystem.GamePresenter
 import com.example.ujiseabattle.GameSystem.Vector2
 
@@ -8,15 +10,17 @@ class Ship(var x :Int,var y: Int,var size:Int,val bitmapPack: BitmapPack,var p:G
 {
     var inHorizontal = true
     var activeBitmap : Bitmap? = bitmapPack.horizontal
+    var occupiedTiles: MutableList<Tile> = mutableListOf<Tile>()
+    var totalBombed  = 0
 
     init {
         setOccupied(true)
     }
 
-    fun moveTo(x:Int,y:Int)
+    fun moveTo(x:Int,y:Int) : Boolean
     {
         //colision paredes y colision unidades
-        if(!checkCollisions(x,y))return
+        if(!checkCollisions(x,y))return false
 
 
 
@@ -27,7 +31,29 @@ class Ship(var x :Int,var y: Int,var size:Int,val bitmapPack: BitmapPack,var p:G
 
         //rellenar ocupados
         setOccupied(true)
+        return  true
 
+    }
+
+    fun increaseTotalBombed() : Boolean
+    {
+        totalBombed += 1
+
+        if(totalBombed == occupiedTiles.size)
+        {
+            for(t in occupiedTiles)
+            {
+                t.tileType = Tile.TileType.Discovered
+
+            }
+
+            activeBitmap = if(inHorizontal) bitmapPack.horizontalDestroyed
+            else bitmapPack.verticalDestroyed
+
+            return  true
+        }
+
+        return  false
 
     }
 
@@ -67,13 +93,23 @@ class Ship(var x :Int,var y: Int,var size:Int,val bitmapPack: BitmapPack,var p:G
 
     private fun setOccupied(value:Boolean)
     {
+        if(!value)occupiedTiles.clear()
+
         var o:Ship? = this
         if(!value)o = null
 
         for(i in 0 until size)
         {
-            if(inHorizontal)p.canvasGrid[y+i][x].occupier = o
-            else p.canvasGrid[y][x+i].occupier = o
+            if(inHorizontal)
+            {
+                p.canvasGrid[y+i][x].occupier = o
+                if(value)occupiedTiles.add(p.canvasGrid[y+i][x])
+            }
+            else
+            {
+                p.canvasGrid[y][x+i].occupier = o
+                if(value)occupiedTiles.add(p.canvasGrid[y][x+i])
+            }
         }
     }
 
