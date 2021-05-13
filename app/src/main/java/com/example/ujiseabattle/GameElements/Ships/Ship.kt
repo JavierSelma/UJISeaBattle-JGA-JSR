@@ -2,8 +2,10 @@ package com.example.ujiseabattle.GameElements.Ships
 
 import android.graphics.Bitmap
 import com.example.ujiseabattle.GameElements.Button
+import com.example.ujiseabattle.GameElements.FieldTile
 import com.example.ujiseabattle.GameElements.Tile
 import com.example.ujiseabattle.GameSystem.GamePresenter
+import com.example.ujiseabattle.GameSystem.Pair
 import com.example.ujiseabattle.GameSystem.Vector2
 
 class Ship(var x :Int,var y: Int,var size:Int,val bitmapPack: BitmapPack,var p:GamePresenter)
@@ -37,6 +39,7 @@ class Ship(var x :Int,var y: Int,var size:Int,val bitmapPack: BitmapPack,var p:G
 
     fun increaseTotalBombed() : Boolean
     {
+        p.soundPlayer.playSound(p.soundPlayer.shiphit)
         totalBombed += 1
 
         if(totalBombed == occupiedTiles.size)
@@ -44,18 +47,28 @@ class Ship(var x :Int,var y: Int,var size:Int,val bitmapPack: BitmapPack,var p:G
             for(t in occupiedTiles)
             {
                 t.tileType = Tile.TileType.Discovered
+                if(t.friendly)
+                {
+                    val pair = Pair(t.gridPos.Column,t.gridPos.Row)
+                    pair.convertToAiCoords()
+
+                    p.enemyAI.updateAs(pair,FieldTile.State.SUNK)
+                }
 
             }
 
             activeBitmap = if(inHorizontal) bitmapPack.horizontalDestroyed
             else bitmapPack.verticalDestroyed
 
+            p.soundPlayer.playSound(p.soundPlayer.shipdestroyed)
             return  true
         }
 
         return  false
 
     }
+
+    fun getCurrentHealth(): Int {return  size - totalBombed}
 
     private  fun checkCollisions(desiredX: Int,desiredY: Int):Boolean
     {

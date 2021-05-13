@@ -213,6 +213,10 @@ class GameView (width:Int,height:Int,private val context: Context,private  val p
             }
 
         }
+        else if(p.gameState == GamePresenter.GameState.END)
+        {
+            drawText(p.winMessage,1,0f,7,0f, 2, R.color.HotPink)
+        }
 
 
     }

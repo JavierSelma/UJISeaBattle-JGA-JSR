@@ -16,7 +16,9 @@ class GameModel(private val p: GamePresenter)
         field = value
         if(playerScore == maxScore)
         {
+            p.soundPlayer.playSound(p.soundPlayer.victoria)
             p.gameState = GamePresenter.GameState.END
+            p.winMessage = "Congrats, You've won"
         }
     }
 
@@ -26,6 +28,9 @@ class GameModel(private val p: GamePresenter)
         if(enemyScore == maxScore)
         {
             p.gameState = GamePresenter.GameState.END
+            p.soundPlayer.playSound(p.soundPlayer.derrota)
+            p.winMessage = "Sorry, You've lost"
+            p.showAllEnemyShips()
         }
     }
 

@@ -1,8 +1,20 @@
 package com.example.ujiseabattle.GameSystem
 
-data class Pair(val Row:Int,val Column:Int)
+data class Pair(var Row:Int,var Column:Int)
 {
     override fun toString(): String {
         return "[$Row][$Column]"
+    }
+
+    fun convertToRealCoords()
+    {
+        Row+= 2
+        Column += 1
+    }
+
+    fun convertToAiCoords()
+    {
+        Row-= 2
+        Column -= 1
     }
 }

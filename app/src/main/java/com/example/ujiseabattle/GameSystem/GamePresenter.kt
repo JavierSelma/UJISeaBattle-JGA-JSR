@@ -1,13 +1,16 @@
 package com.example.ujiseabattle.GameSystem
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.util.Log
 import androidx.core.math.MathUtils
 import com.example.ujiseabattle.GameElements.Button
+import com.example.ujiseabattle.GameElements.FieldTile
 import com.example.ujiseabattle.GameElements.Ships.BitmapPack
 import com.example.ujiseabattle.GameElements.Ships.Ship
 import com.example.ujiseabattle.GameElements.Tile
 import com.example.ujiseabattle.R
+import es.uji.vj1229.framework.AnimatedBitmap
 import es.uji.vj1229.framework.TouchHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -15,12 +18,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
-class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: GameActivity)
+class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: GameActivity,val soundOn:Boolean,val smartOn:Boolean)
 {
+    val soundPlayer = SoundPlayerObject(context,soundOn)
 
     val system = System()
     lateinit var  gameModel: GameModel
-
 
 
     val placingBoardX = 1
@@ -39,6 +42,9 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
     val xOffset = (width - totalColumns * cellSide) / 2.0f
     val yOffset = (height - totalRows * cellSide) / 2.0f
 
+    var winMessage :String = ""
+
+    var  enemyAI : AI
     enum class GameState { PLACING, PLACED,MIDGAME,END}
 
     var gameState = GameState.PLACING
@@ -62,24 +68,34 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
         {
             val b = Button( totalRows-2,totalColumns/2-3,4,R.color.DeepPink,"Restart Game",2,R.color.white,1,Button.Type.Long,this)
             activeButtons.add(b)
+
         }
 
 
         field = value
     }
 
-    private val enemyAI = EnemyAI(this)
+
 
     init {
+
+
 
         Assets.loadDrawableAssets(context)
         Assets.createResizedAssets(context,cellSide.toInt())
         buildMatrix()
         spawnShips(2,totalColumns/2 + 2)
 
+        enemyAI = if(smartOn) SmartEnemyAI(this)
+        else EnemyAI(this)
+
+
+        //enemyAI = EnemyAI(this)
 
 
     }
+
+
 
 
     private  fun createExplosion(row:Int,column: Int){
@@ -88,6 +104,7 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
     }
 
     private  fun createSplash(row:Int,column: Int){
+        soundPlayer.playSound(soundPlayer.watersplash)
         var animation = Animation(row,column,Assets.splashAB)
         activeExplosion = animation
     }
@@ -113,7 +130,11 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
 
                 val originX : Float = row * cellSide + xOffset
                 val originY : Float = column * cellSide + yOffset
-                canvasGrid[row][column] = Tile(Vector2(originX,originY))
+                val t = Tile(Vector2(originX,originY))
+                t.gridPos.Row  = row
+                t.gridPos.Column = column
+                canvasGrid[row][column] = t
+
             }
 
         }
@@ -173,6 +194,8 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
 
     private fun onClick(x:Int,y:Int)
     {
+        soundPlayer.playSound(soundPlayer.click)
+
         if(gameState == GameState.PLACED || gameState == GameState.PLACING)
         {
             selectedShip?.changeOrientation()
@@ -233,16 +256,31 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
 
         if(canvasGrid[column][row].occupier != null)
         {
+            //si acierta a un barco
+
+
             canvasGrid[column][row].tileType = Tile.TileType.Bombed
-            createExplosion(row,column)
             val shipShinked =  canvasGrid[column][row].occupier?.increaseTotalBombed()
             if( shipShinked == true)gameModel.enemyScore++
+
+            if(smartOn)
+            {
+                play.convertToAiCoords()
+                enemyAI.updateAs(play,FieldTile.State.HIT)
+            }
+
+            createExplosion(row,column)
+
             return true
         }
         else
         {
-            canvasGrid[column][row].tileType = Tile.TileType.Missed
+            //si pega al agua
+
             createSplash(row,column)
+            canvasGrid[column][row].tileType = Tile.TileType.Missed
+            play.convertToAiCoords()
+            enemyAI.updateAs(play,FieldTile.State.MISS)
             return false
         }
 
@@ -258,8 +296,16 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
         if(gameState == GameState.PLACING || gameState == GameState.PLACED)
         {
             selectedShip = null
-            gameState = if(gameModel.checkValidPlacement()) GameState.PLACED
-            else GameState.PLACING
+            gameState = if(gameModel.checkValidPlacement())
+            {
+                soundPlayer.playSound(soundPlayer.shipplaced)
+                GameState.PLACED
+            }
+            else
+            {
+                soundPlayer.playSound(soundPlayer.shipwrong)
+                GameState.PLACING
+            }
         }
 
 
@@ -315,6 +361,25 @@ class GamePresenter(val context: Context,width:Int,height:Int,val gameActivity: 
         }
     }
 
+    fun showAllEnemyShips()
+    {
+        for(col in 0 until totalColumns)
+        {
+            for(row in 0 until  totalRows)
+            {
+                val t = canvasGrid[col][row]
+                if(!t.friendly && (t.tileType == Tile.TileType.Bombed || t.tileType ==  Tile.TileType.Clean) && t.occupier != null)
+                {
+                    val s = t.occupier
 
+                    var finalBM = s?.bitmapPack?.horizontal
+
+                    if(s?.inHorizontal == false)finalBM = s?.bitmapPack?.vertical
+
+                    s?.activeBitmap = finalBM
+                }
+            }
+        }
+    }
 
 }

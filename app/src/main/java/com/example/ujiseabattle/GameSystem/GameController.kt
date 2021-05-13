@@ -12,10 +12,10 @@ import es.uji.vj1229.framework.IGameController
 import es.uji.vj1229.framework.SpriteSheet
 import es.uji.vj1229.framework.TouchHandler
 
-class GameController(context: Context,displayMetrics: DisplayMetrics,val gameActiviy: GameActivity) : IGameController
+class GameController(context: Context,displayMetrics: DisplayMetrics,val gameActiviy: GameActivity,val soundOn:Boolean,val smartOn:Boolean) : IGameController
 {
 
-    private  val presenter : GamePresenter = GamePresenter(context,displayMetrics.widthPixels,displayMetrics.heightPixels,gameActiviy)
+    private  val presenter : GamePresenter = GamePresenter(context,displayMetrics.widthPixels,displayMetrics.heightPixels,gameActiviy,soundOn,smartOn)
     private val gameView : GameView = GameView(displayMetrics.widthPixels,displayMetrics.heightPixels,context,presenter)
     private val gameModel : GameModel = GameModel(presenter)
 

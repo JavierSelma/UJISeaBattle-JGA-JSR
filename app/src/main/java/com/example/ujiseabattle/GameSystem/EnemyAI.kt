@@ -1,9 +1,18 @@
 package com.example.ujiseabattle.GameSystem
 
+import com.example.ujiseabattle.GameElements.FieldTile
 import com.example.ujiseabattle.GameElements.Tile
 
-class EnemyAI(private val p:GamePresenter)
+interface AI
 {
+    fun getPlay() : Pair
+    fun updateAs(p:Pair,state: FieldTile.State)
+}
+
+class EnemyAI(private val p:GamePresenter) : AI
+{
+
+
     var plays: MutableList<Pair> = mutableListOf<Pair>()
     var playsDone: MutableList<Pair> = mutableListOf<Pair>()
 
@@ -24,7 +33,11 @@ class EnemyAI(private val p:GamePresenter)
         }
     }
 
-    fun getPlay(): Pair
+    override fun updateAs(p: Pair, state: FieldTile.State) {
+        //eop
+    }
+
+    override fun getPlay(): Pair
     {
         var playType = "Smart"
 
@@ -37,7 +50,7 @@ class EnemyAI(private val p:GamePresenter)
         }
 
         plays.remove(play)
-        p.system.print("$playType -> " +  Pair(play.Row- 2, play.Column- 1).toString() + " -> ${plays.size} plays remaining ->" + "${playsDone.size} plays stored")
+       // p.system.print("$playType -> " +  Pair(play.Row- 2, play.Column- 1).toString() + " -> ${plays.size} plays remaining ->" + "${playsDone.size} plays stored")
         playsDone.add(play)
         return play
     }
@@ -51,9 +64,12 @@ class EnemyAI(private val p:GamePresenter)
     {
         if(playsDone.isEmpty())return null
 
+
         for(i in playsDone.size-1 downTo 0)
         {
             val play = playsDone[i]
+
+
 
             if(p.canvasGrid[play.Column][play.Row].tileType == Tile.TileType.Bombed)
             {
@@ -62,6 +78,7 @@ class EnemyAI(private val p:GamePresenter)
             }
             else
             {
+
                 playsDone.remove(play)
             }
 
